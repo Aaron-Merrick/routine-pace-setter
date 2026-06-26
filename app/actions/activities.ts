@@ -3,13 +3,20 @@ import dayjs from 'dayjs';
 const ACTIVITIES_TABLE = 'activities';
 const ACTIVITY_COMPLETION_TABLE = 'activity_completions';
 
+export type ActivityCompletion = {
+	id?: number;
+	activity_id: string;
+	duration: number;
+	date: number;
+};
+
 export type Activity = {
-  id?: number;
+  id?: string;
   label: string;
   category?: number;
 }
 
-export function getTodaysActivities() {
+export function getTodaysActivities(): ActivityCompletion[] {
 	const list = getActivityCompletions();
 	if (!list.length) return [];
 	return list.filter(({ date }) => dayjs().isSame(date, 'day'));
@@ -17,7 +24,7 @@ export function getTodaysActivities() {
 
 /* Activities */
 export function getActivities() {
-	return JSON.parse(localStorage.getItem(ACTIVITIES_TABLE)) ?? [];
+	return JSON.parse(localStorage.getItem(ACTIVITIES_TABLE) ?? "") ?? [];
 }
 
 export function createActivity(activity: Activity) {
@@ -28,8 +35,8 @@ export function createActivity(activity: Activity) {
 }
 
 /* Activity Completions */
-export function getActivityCompletions() {
-	return JSON.parse(localStorage.getItem(ACTIVITY_COMPLETION_TABLE)) ?? [];
+export function getActivityCompletions(): ActivityCompletion[] {
+	return JSON.parse(localStorage.getItem(ACTIVITY_COMPLETION_TABLE) ?? "") ?? [];
 }
 
 export function saveCompletion(activityCompletion: ActivityCompletion) {

@@ -4,31 +4,32 @@ import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { Activity, createActivity, getActivities, getTodaysActivities, saveCompletion } from './actions/activities';
 
 export default function Home() {	
-  const timerRef = useRef(null);
+  const timerRef = useRef<NodeJS.Timeout>(null);
   
   const [secondsRemaining, setSecondsRemaining] = useState(60);
   const [isRunning, setIsRunning] = useState(false);
 
-  const [activeIndex, setActiveIndex] = useState();
+  const [activeIndex, setActiveIndex] = useState<number|null>();
   const [activities, setActivities] = useState<Activity[]>([]);
 
-  const [activeDuration, setActiveDuration] = useState();
-  const [selectedDurations, setSelectedDurations] = useState({}); // TODO: populate with current day data
+  const [activeDuration, setActiveDuration] = useState<number>();
+  const [selectedDurations, setSelectedDurations] = useState<Record<number, string>>({});
 
-  const activeActivity = activities.length ? activities[activeIndex] : null;
+  const activeActivity = activities.length && activeIndex ? activities[activeIndex] : null;
   const lastActivityIndex = activities?.length - 1;
 
 	const fetchActivities = () => {
 		setActivities(getActivities());
 		const today = getTodaysActivities();
-		console.log({today});
-		const obj = {};
+		const obj: Record<number, string> = {};
 		today.forEach((entry) => obj[entry.duration] = entry.activity_id);
 		setSelectedDurations(obj);
 	}
 
 	const markComplete = useCallback(() => {
-	saveCompletion({ date: Date.now(), duration: activeDuration, activity_id: activeActivity.id });
+		if (activeDuration && activeActivity) {
+		saveCompletion({ date: Date.now(), duration: activeDuration, activity_id: activeActivity.id! });
+		}
 	}, [activeDuration, activeIndex]);
 
   const toggleIsRunning = useCallback(() => setIsRunning(!isRunning), [isRunning, setIsRunning]);
@@ -38,7 +39,7 @@ export default function Home() {
 	// createActivity({ label: name });
   };
 
-  const selectDuration = useCallback((duration) => {
+  const selectDuration = useCallback((duration: number) => {
 	setActiveDuration(duration);
 	if (!selectedDurations[duration]) {
 		setActiveIndex(null)
@@ -60,10 +61,10 @@ export default function Home() {
       
     } else if (secondsRemaining == 0) {
       setIsRunning(false);
-      clearInterval(timerRef.current);
+      if (timerRef?.current) clearInterval(timerRef.current);
 
       // TODO: prompt instead of immediately switch?
-      if (activeIndex != lastActivityIndex) {
+      if (activeIndex && activeIndex != lastActivityIndex) {
       	setActiveIndex(activeIndex + 1);
       }
     }
@@ -71,7 +72,7 @@ export default function Home() {
 
   useEffect(() => {
     updateTimer();
-    return () => clearInterval(timerRef.current);
+    return () => { if (timerRef?.current) clearInterval(timerRef.current) };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRunning, secondsRemaining]);
 
@@ -79,7 +80,7 @@ export default function Home() {
     if (activeActivity && activeDuration) {
 	    setSecondsRemaining(activeDuration * 60);
 	    setSelectedDurations((prev) => {
-		    prev[activeDuration] = activeActivity.id;
+		    prev[activeDuration] = activeActivity.id!;
 		    return prev;
 	    });
     }
@@ -91,7 +92,7 @@ export default function Home() {
 
   if (!activities.length) {
 	return (
-		<button onClick={addActivity} className="rounded-full border border-1 border-orange text-center w-10 h-10">+</button>
+		<button onClick={() => addActivity('name')} className="rounded-full border border-1 border-orange text-center w-10 h-10">+</button>
 	);
   }
 
@@ -114,7 +115,7 @@ export default function Home() {
 	  <div>
             <h3>Select an activity</h3>
 	    <div className="flex flex-row gap-4">
-	      <button onClick={addActivity} className="rounded-full border border-1 border-orange text-center w-10 h-10">+</button>
+	      <button onClick={() => addActivity('name')} className="rounded-full border border-1 border-orange text-center w-10 h-10">+</button>
 	      {activities.map((activity, index) => {
 		      const isActive = activity.id == activeActivity?.id;
 			      return (
